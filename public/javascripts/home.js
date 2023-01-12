@@ -5,6 +5,7 @@ const container = document.querySelector('.container')
 const row = document.querySelector('.row')
 console.log(formFile)
 let form = new FormData();
+renderHomePage()
 
 formFile.addEventListener('change', function (e) {
   // let form = new FormData();
@@ -20,6 +21,39 @@ uploadButton.addEventListener('click', function () {
   uploadImage(form)
   form = new FormData();
 })
+
+
+function renderHomePage() {
+  fetch(
+    '/api/allfile'
+  ).then((response) => {
+    return response.json();
+  }).then((data) => {
+    console.log("進來選染一開始的資料囉~")
+    console.log(data)
+    console.log(data[0]["ImageUrl"])
+    console.log(data[1]["Text"])
+    console.log(data[2]["Id"])
+    data.forEach((element) => {
+      const resultSection = document.createElement('div')
+      resultSection.className = "result-section"
+      const hr = document.createElement('hr')
+      resultSection.appendChild(hr)
+      const resultInfo = document.createElement('div')
+      resultInfo.className = "result"
+      resultSection.appendChild(resultInfo)
+      const resultText = document.createElement('div')
+      resultText.className = "result-text"
+      resultText.textContent = element["Text"]
+      resultInfo.appendChild(resultText)
+      const resultImage = document.createElement('div')
+      resultImage.className = "result-img"
+      resultImage.style.cssText = `background-image: url(${element["ImageUrl"]});height:150px;width:200px; background-size:cover;background-position:center center;`
+      resultInfo.appendChild(resultImage)
+      row.insertAdjacentElement('afterend', resultSection)
+    });
+  })
+}
 
 
 async function uploadImage(form) {
@@ -52,8 +86,8 @@ async function uploadImage(form) {
       resultImage.style.cssText = `background-image: url(${result["ImageUrl"]});height:150px;width:200px; background-size:cover;background-position:center center;`
       resultInfo.appendChild(resultImage)
       row.insertAdjacentElement('afterend', resultSection)
-      textInput.value =""
-      formFile.value=""
+      textInput.value = ""
+      formFile.value = ""
     }
   } catch (err) {
     console.log({ "error": err.message });

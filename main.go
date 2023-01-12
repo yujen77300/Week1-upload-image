@@ -21,6 +21,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/viper"
+
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const portNumber = ":8080"
@@ -101,10 +105,22 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	}
 	fmt.Printf("測試json結果第一次")
 	fmt.Println(string(data))
+	// 上傳到rds
+	db, _ := ConnectToMYSQL()
+	InsertUser(db, url, textValue)
 	// 寫入 w
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(string(data)))
+}
+
+func allFileHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	db, _ := ConnectToMYSQL()
+	fmt.Printf("在allFileHandle裡面的結果")
+	res := QueryAllFile(db)
+	fmt.Println(string(res))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(string(res)))
 }
 
 func ConnectToAWS() (string, string, *s3.Client) {
@@ -144,12 +160,49 @@ func ConnectToAWS() (string, string, *s3.Client) {
 
 }
 
+func ConnectToMYSQL() (*sql.DB, error) {
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	// read the fiele
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	const (
+		NETWORK = "tcp"
+		PORT    = 3306
+	)
+
+	USERNAME := viper.GetString("USERNAME")
+	PASSWORD := viper.GetString("PASSWORD")
+	DATABASE := viper.GetString("DATABASE")
+	SERVER := viper.GetString("SERVER")
+
+	conn := fmt.Sprintf("%s:%s@%s(%s:%d)/%s", USERNAME, PASSWORD, NETWORK, SERVER, PORT, DATABASE)
+
+	db, err := sql.Open("mysql", conn)
+	fmt.Printf("db的資料類型")
+	fmt.Printf("Datatype of file : %T\n", db)
+	if err != nil {
+		// fmt.Println("開啟 MySQL 連線發生錯誤，原因為：", err)
+		return nil, fmt.Errorf("開啟 MySQL 連線發生錯誤，原因為： %v", err)
+	}
+	if err := db.Ping(); err != nil {
+		// fmt.Println("資料庫連線錯誤，原因為：", err.Error())
+		return nil, fmt.Errorf("資料庫連線錯誤，原因為： %v", err)
+	}
+	return db, nil
+}
+
 func main() {
 	ConnectToAWS()
+	ConnectToMYSQL()
 
 	router := httprouter.New()
 	router.ServeFiles("/public/*filepath", http.Dir("./public"))
 	router.GET("/", homePageHandle)
+	router.GET("/api/allfile", allFileHandle)
 	router.POST("/api/upload/image", imageUploadHandle)
 	http.ListenAndServe(portNumber, router)
 }
@@ -160,3 +213,45 @@ func main() {
 // http.HandleFunc("/", homePageHandle)
 // fmt.Printf("Starting application on port %s ", portNumber)
 // http.ListenAndServe(portNumber, nil)
+
+func InsertUser(DB *sql.DB, image, text string) error {
+	_, err := DB.Exec("INSERT INTO information(imageUrl,textInfo) VALUES(?,?)", image, text)
+	if err != nil {
+		fmt.Printf("建立檔案失敗，原因是：%v", err)
+		return err
+	}
+	fmt.Println("建立檔案成功！")
+	return nil
+
+}
+
+func QueryAllFile(db *sql.DB) []byte {
+	allData, err := db.Query("SELECT * FROM information;")
+	if err != nil {
+		fmt.Printf("查詢資料庫失敗，原因為：%v\n", err)
+		return nil
+	}
+	type MysqlData struct {
+		Id       int16
+		ImageUrl string
+		Text     string
+	}
+	// 建立一個slice來儲存資料
+	var files []MysqlData
+	for allData.Next() {
+		var file MysqlData
+		err := allData.Scan(&file.Id, &file.ImageUrl, &file.Text)
+		if err != nil {
+			fmt.Printf("映射失敗，原因為：%v\n", err)
+			return nil
+		}
+		files = append(files, file)
+	}
+	res, err := json.Marshal(files)
+	if err != nil {
+		fmt.Printf("轉換JSON失敗，原因為：%v\n", err)
+		return nil
+	}
+
+	return res
+}
