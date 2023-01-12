@@ -3,6 +3,7 @@ package main
 import (
 	// "bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 
@@ -24,6 +25,8 @@ import (
 
 const portNumber = ":8080"
 
+var pictureID int32 = 0
+
 func homePageHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	parsedTemplate, err := template.ParseFiles("./templates/home.tmpl")
 	if err != nil {
@@ -35,7 +38,7 @@ func homePageHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 }
 
 func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	_, bucketName, client := ConnectToAWS()
+	region, bucketName, client := ConnectToAWS()
 	fmt.Println("到post方法裡面了")
 	fmt.Println(client)
 	file, header, err := r.FormFile("form")
@@ -64,6 +67,44 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
+	pictureID += 1
+	fmt.Println("測試圖片id")
+	fmt.Println(pictureID)
+
+	// 取得url
+	url := "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + fileName
+	fmt.Println("測試url名稱")
+	fmt.Println(url)
+
+	// 測試取地的文字
+	textValue := r.PostFormValue("text")
+	fmt.Println("接受文字")
+	fmt.Println(textValue)
+
+	// 生成jason檔案
+
+	type UploadInfo struct {
+		InfoId   int32
+		ImageUrl string
+		Text     string
+	}
+
+	uploadInfo := &UploadInfo{
+		InfoId:   pictureID,
+		ImageUrl: url,
+		Text:     textValue,
+	}
+
+	data, dataError := json.Marshal(uploadInfo)
+	if dataError != nil {
+		fmt.Printf("json.Marchal failed : %v\n", dataError)
+	}
+	fmt.Printf("測試json結果第一次")
+	fmt.Println(string(data))
+	// 寫入 w
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 func ConnectToAWS() (string, string, *s3.Client) {
@@ -99,7 +140,7 @@ func ConnectToAWS() (string, string, *s3.Client) {
 	fmt.Println(client)
 	fmt.Printf("Datatype of client : %T\n", client)
 
-	return AWS_ACCESS_KEY, AWS_BUCKET_NAME, client
+	return AWS_REGION, AWS_BUCKET_NAME, client
 
 }
 

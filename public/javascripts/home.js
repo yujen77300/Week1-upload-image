@@ -11,8 +11,10 @@ formFile.addEventListener('change', function (e) {
   console.log(form)
 })
 
-uploadButton.addEventListener('click',function(){
+uploadButton.addEventListener('click', function () {
   console.log("近來要上傳了")
+  console.log(textInput.value)
+  form.append('text', textInput.value)
   uploadImage(form)
 })
 
@@ -28,6 +30,8 @@ async function uploadImage(form) {
     let result = await response.json();
     if (response.status === 200) {
       console.log("成功了")
+      console.log(result)
+  
     }
   } catch (err) {
     console.log({ "error": err.message });
