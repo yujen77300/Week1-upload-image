@@ -1,6 +1,8 @@
 const textInput = document.querySelector('#text-input')
 const formFile = document.querySelector('#form-file')
 const uploadButton = document.querySelector('.upload-button')
+const container = document.querySelector('.container')
+const row = document.querySelector('.row')
 console.log(formFile)
 let form = new FormData();
 
@@ -16,6 +18,7 @@ uploadButton.addEventListener('click', function () {
   console.log(textInput.value)
   form.append('text', textInput.value)
   uploadImage(form)
+  form = new FormData();
 })
 
 
@@ -30,11 +33,29 @@ async function uploadImage(form) {
     let result = await response.json();
     if (response.status === 200) {
       console.log("成功了")
+      console.log(response)
+      console.log("結果")
       console.log(result)
-  
+      const resultSection = document.createElement('div')
+      resultSection.className = "result-section"
+      const hr = document.createElement('hr')
+      resultSection.appendChild(hr)
+      const resultInfo = document.createElement('div')
+      resultInfo.className = "result"
+      resultSection.appendChild(resultInfo)
+      const resultText = document.createElement('div')
+      resultText.className = "result-text"
+      resultText.textContent = result["Text"]
+      resultInfo.appendChild(resultText)
+      const resultImage = document.createElement('div')
+      resultImage.className = "result-img"
+      resultImage.style.cssText = `background-image: url(${result["ImageUrl"]});height:150px;width:200px; background-size:cover;background-position:center center;`
+      resultInfo.appendChild(resultImage)
+      row.insertAdjacentElement('afterend', resultSection)
+      textInput.value =""
+      formFile.value=""
     }
   } catch (err) {
     console.log({ "error": err.message });
   }
 }
-

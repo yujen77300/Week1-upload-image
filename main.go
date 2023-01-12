@@ -104,7 +104,7 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	// 寫入 w
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	w.Write([]byte(string(data)))
 }
 
 func ConnectToAWS() (string, string, *s3.Client) {
