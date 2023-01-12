@@ -1,0 +1,26 @@
+h3 {
+  margin-top: 10px;
+}
+
+#text-input {
+  width: 250px;
+  font-size: 14px;
+}
+
+.image-div {
+  margin-top: 10px;
+}
+
+.result-img {
+  background-image: url("https://www.nbcsports.com/sites/rsnunited/files/styles/article_video_thumbnail/public/short_form_video/hero/CurryChampionship010723.jpg");
+  height: 150px;
+  width: 200px;
+  background-size: cover;
+  background-position: center center;
+}
+
+.upload-button{
+  border: 1px solid #666666;
+  outline: none;
+  margin-top: 10px;
+}
