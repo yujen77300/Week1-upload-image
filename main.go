@@ -53,10 +53,10 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	}
 	fmt.Println("先先來測試上傳圖片")
 	fmt.Println(file)
-	fmt.Printf("Datatype of file : %T\n", file)
+	// fmt.Printf("Datatype of file : %T\n", file)
 	// file資料型態 : multipart.sectionReadCloser
 	// hearder資料型態 : *multipart.FileHeader
-	fmt.Printf("Datatype of header : %T\n", header)
+	// fmt.Printf("Datatype of header : %T\n", header)
 	fileExt := filepath.Ext(header.Filename)
 	originalFileName := strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename))
 	fileName := strings.ReplaceAll(strings.ToLower(originalFileName), " ", "-") + fileExt
@@ -79,8 +79,9 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	url := "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + fileName
 	fmt.Println("測試url名稱")
 	fmt.Println(url)
+	cloudFrontUrl := "https://d1uumvm880lnxp.cloudfront.net/" + fileName
 
-	// 測試取地的文字
+	// 測試文字
 	textValue := r.PostFormValue("text")
 	fmt.Println("接受文字")
 	fmt.Println(textValue)
@@ -88,23 +89,25 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	// 生成jason檔案
 
 	type UploadInfo struct {
-		InfoId   int32
-		ImageUrl string
-		Text     string
+		InfoId        int32
+		ImageUrl      string
+		Text          string
+		CloudFrontUrl string
 	}
 
 	uploadInfo := &UploadInfo{
-		InfoId:   pictureID,
-		ImageUrl: url,
-		Text:     textValue,
+		InfoId:        pictureID,
+		ImageUrl:      url,
+		Text:          textValue,
+		CloudFrontUrl: cloudFrontUrl,
 	}
 
 	data, dataError := json.Marshal(uploadInfo)
 	if dataError != nil {
 		fmt.Printf("json.Marchal failed : %v\n", dataError)
 	}
-	fmt.Printf("測試json結果第一次")
-	fmt.Println(string(data))
+	// fmt.Printf("測試json結果第一次")
+	// fmt.Println(string(data))
 	// 上傳到rds
 	db, _ := ConnectToMYSQL()
 	InsertUser(db, url, textValue)
@@ -116,9 +119,9 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 
 func allFileHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	db, _ := ConnectToMYSQL()
-	fmt.Printf("在allFileHandle裡面的結果")
+	// fmt.Printf("在allFileHandle裡面的結果")
 	res := QueryAllFile(db)
-	fmt.Println(string(res))
+	// fmt.Println(string(res))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(string(res)))
 }
@@ -146,7 +149,7 @@ func ConnectToAWS() (string, string, *s3.Client) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(AWS_REGION), config.WithCredentialsProvider(staticProvider))
 	fmt.Println(AWS_BUCKET_NAME)
 	if err != nil {
-		fmt.Println("測試一下")
+		// fmt.Println("測試一下")
 		log.Fatalln(err)
 	}
 
@@ -245,8 +248,14 @@ func QueryAllFile(db *sql.DB) []byte {
 			fmt.Printf("映射失敗，原因為：%v\n", err)
 			return nil
 		}
+		file.ImageUrl = strings.Replace(file.ImageUrl, "https://uploadimage-dylan.s3.ap-northeast-1.amazonaws.com/", "https://d1uumvm880lnxp.cloudfront.net/", 1)
+
+		// fmt.Printf("一搜尋完畢確認")
+		// fmt.Println(file)
 		files = append(files, file)
 	}
+	// fmt.Printf("要再全部搜尋裡面確認")
+	// fmt.Println(files)
 	res, err := json.Marshal(files)
 	if err != nil {
 		fmt.Printf("轉換JSON失敗，原因為：%v\n", err)
