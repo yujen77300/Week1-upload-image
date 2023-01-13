@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	// "os"
 
 	// "image"
 	// "io/ioutil"
@@ -14,6 +15,8 @@ import (
 
 	"path/filepath"
 	"strings"
+
+	// "github.com/joho/godotenv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,7 +30,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const portNumber = ":8080"
+const portNumber = ":80"
 
 var pictureID int32 = 0
 
@@ -127,17 +130,28 @@ func allFileHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 }
 
 func ConnectToAWS() (string, string, *s3.Client) {
+	// 透過viper讀取環境變數
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
-	// read the fiele
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalln(err)
 	}
+	// 透過dotenv讀取環境變數
+	// godotenv.Load()
 	AWS_REGION := viper.GetString("AWS_REGION")
 	AWS_ACCESS_KEY := viper.GetString("AWS_ACCESS_KEY_ID")
 	AWS_SECRET_ACCESS_KEY := viper.GetString("AWS_SECRET_ACCESS_KEY")
 	AWS_BUCKET_NAME := viper.GetString("AWS_BUCKET_NAME")
+	// AWS_REGION := os.Getenv("AWS_REGION")
+	// AWS_ACCESS_KEY := os.Getenv("AWS_ACCESS_KEY_ID")
+	// AWS_SECRET_ACCESS_KEY := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	// AWS_BUCKET_NAME := os.Getenv("AWS_BUCKET_NAME")
+	// fmt.Println("測試測試")
+	// fmt.Println(testAWS_REGION)
+	// fmt.Println(testAWS_ACCESS_KEY)
+	// fmt.Println(testAWS_SECRET_ACCESS_KEY)
+	// fmt.Println(testAWS_BUCKET_NAME)
 
 	staticProvider := credentials.NewStaticCredentialsProvider(
 		AWS_ACCESS_KEY,
@@ -164,9 +178,9 @@ func ConnectToAWS() (string, string, *s3.Client) {
 }
 
 func ConnectToMYSQL() (*sql.DB, error) {
+	// godotenv.Load()
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
-	// read the fiele
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalln(err)
@@ -177,10 +191,19 @@ func ConnectToMYSQL() (*sql.DB, error) {
 		PORT    = 3306
 	)
 
+	// TEXTUSERNAME := os.Getenv("USERNAME")
+	// PASSWORD := os.Getenv("PASSWORD")
+	// DATABASE := os.Getenv("DATABASE")
+	// SERVER := os.Getenv("SERVER")
 	USERNAME := viper.GetString("USERNAME")
 	PASSWORD := viper.GetString("PASSWORD")
 	DATABASE := viper.GetString("DATABASE")
 	SERVER := viper.GetString("SERVER")
+	// fmt.Println("測試測試")
+	// fmt.Println(TEXTUSERNAME)
+	// fmt.Println(testPASSWORD)
+	// fmt.Println(testDATABASE)
+	// fmt.Println(testSERVER)
 
 	conn := fmt.Sprintf("%s:%s@%s(%s:%d)/%s", USERNAME, PASSWORD, NETWORK, SERVER, PORT, DATABASE)
 
@@ -188,11 +211,9 @@ func ConnectToMYSQL() (*sql.DB, error) {
 	fmt.Printf("db的資料類型")
 	fmt.Printf("Datatype of file : %T\n", db)
 	if err != nil {
-		// fmt.Println("開啟 MySQL 連線發生錯誤，原因為：", err)
 		return nil, fmt.Errorf("開啟 MySQL 連線發生錯誤，原因為： %v", err)
 	}
 	if err := db.Ping(); err != nil {
-		// fmt.Println("資料庫連線錯誤，原因為：", err.Error())
 		return nil, fmt.Errorf("資料庫連線錯誤，原因為： %v", err)
 	}
 	return db, nil
@@ -200,7 +221,7 @@ func ConnectToMYSQL() (*sql.DB, error) {
 
 func main() {
 	ConnectToAWS()
-	ConnectToMYSQL()
+	// ConnectToMYSQL()
 
 	router := httprouter.New()
 	router.ServeFiles("/public/*filepath", http.Dir("./public"))
@@ -250,12 +271,8 @@ func QueryAllFile(db *sql.DB) []byte {
 		}
 		file.ImageUrl = strings.Replace(file.ImageUrl, "https://uploadimage-dylan.s3.ap-northeast-1.amazonaws.com/", "https://d1uumvm880lnxp.cloudfront.net/", 1)
 
-		// fmt.Printf("一搜尋完畢確認")
-		// fmt.Println(file)
 		files = append(files, file)
 	}
-	// fmt.Printf("要再全部搜尋裡面確認")
-	// fmt.Println(files)
 	res, err := json.Marshal(files)
 	if err != nil {
 		fmt.Printf("轉換JSON失敗，原因為：%v\n", err)
