@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+
 	// "os"
 
 	// "image"
@@ -17,6 +18,7 @@ import (
 	"strings"
 
 	// "github.com/joho/godotenv"
+	"math/rand"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -30,7 +32,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const portNumber = ":80"
+const portNumber = ":8080"
 
 var pictureID int32 = 0
 
@@ -59,10 +61,23 @@ func imageUploadHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 	// fmt.Printf("Datatype of file : %T\n", file)
 	// file資料型態 : multipart.sectionReadCloser
 	// hearder資料型態 : *multipart.FileHeader
-	// fmt.Printf("Datatype of header : %T\n", header)
+
+	//亂數處理用math/rand
+	var alphabet []rune = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+	alphabetSize := len(alphabet)
+	var sb strings.Builder
+	// 20碼的隨機字串
+	for i := 0; i < 20; i++ {
+		ch := alphabet[rand.Intn(alphabetSize)]
+		sb.WriteRune(ch)
+	}
+
+	randomFileName := sb.String()
+	fmt.Printf("Datatype of file : %s\n", randomFileName)
+
 	fileExt := filepath.Ext(header.Filename)
-	originalFileName := strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename))
-	fileName := strings.ReplaceAll(strings.ToLower(originalFileName), " ", "-") + fileExt
+	fileName := randomFileName + fileExt
+
 	_, error := client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(fileName),
